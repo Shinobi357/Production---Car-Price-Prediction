@@ -1,4 +1,3 @@
-%%writefile src/api.py
 from flask import Flask, request, jsonify
 import logging
 from src.predict import make_prediction
