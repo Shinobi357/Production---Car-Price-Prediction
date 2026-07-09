@@ -28,7 +28,7 @@ def evaluate_model(model, X_train, X_test, y_train, y_test):
         "train_r2": r2_score(y_train, train_preds),
         "validation_r2": r2_score(y_test, test_preds),
         "mae": mean_absolute_error(y_test, test_preds),
-        "rmse": mean_squared_error(y_test, test_preds, squared=False)
+        "rmse": mean_squared_error(y_test, test_preds) ** 0.5
     }
 
 

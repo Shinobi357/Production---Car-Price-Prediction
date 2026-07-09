@@ -1,0 +1,18 @@
+2026-07-09 05:26:20,723 - INFO - Loading data from data/car_price_prediction.csv
+2026-07-09 05:28:18,395 - INFO - Loading data from data/car_price_prediction.csv
+2026-07-09 05:28:18,413 - INFO - Data loaded successfully with shape (2500, 10)
+2026-07-09 05:28:18,413 - INFO - Cleaning data
+2026-07-09 05:28:18,437 - INFO - Data cleaned. New shape: (2500, 9)
+2026-07-09 05:28:18,442 - INFO - Preprocessor saved to models/preprocessor.pkl
+2026-07-09 05:28:18,442 - INFO - Training model: Linear Regression
+2026-07-09 05:31:03,044 - INFO - Loading data from data/car_price_prediction.csv
+2026-07-09 05:31:03,055 - INFO - Data loaded successfully with shape (2500, 10)
+2026-07-09 05:31:03,056 - INFO - Cleaning data
+2026-07-09 05:31:03,065 - INFO - Data cleaned. New shape: (2500, 9)
+2026-07-09 05:31:03,070 - INFO - Preprocessor saved to models/preprocessor.pkl
+2026-07-09 05:31:03,070 - INFO - Training model: Linear Regression
+2026-07-09 05:31:03,238 - INFO - Linear Regression metrics: {'train_r2': 0.019558554921370375, 'validation_r2': -0.019769138146259246, 'mae': 23877.144632345222, 'rmse': 27794.41506423541, 'model': 'Linear Regression', 'cv_r2_mean': -0.027549607589826407, 'cv_r2_std': 0.009219126894687967}
+2026-07-09 05:31:03,239 - INFO - Training model: Random Forest
+2026-07-09 05:31:21,432 - INFO - Random Forest metrics: {'train_r2': 0.5227812111474879, 'validation_r2': -0.03060086539857476, 'mae': 24045.99375341136, 'rmse': 27941.637744365995, 'model': 'Random Forest', 'cv_r2_mean': -0.03187329380106132, 'cv_r2_std': 0.020725236905287173}
+2026-07-09 05:31:21,438 - INFO - Best model saved to models/car_price_model.pkl
+2026-07-09 05:31:21,438 - INFO - Training complete
