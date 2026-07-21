@@ -1,13 +1,17 @@
-from flask import Flask, request, jsonify
 import logging
+import os
+
+from flask import Flask, jsonify, render_template, request
+
 from predict import predict_price
+
 
 app = Flask(__name__)
 
 logging.basicConfig(
     filename="app.log",
     level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
+    format="%(asctime)s - %(levelname)s - %(message)s",
 )
 
 REQUIRED_FIELDS = [
@@ -17,114 +21,141 @@ REQUIRED_FIELDS = [
     "Mileage",
     "Fuel Type",
     "Transmission",
-    "Condition"
+    "Condition",
+    "Engine Size",
 ]
+
 
 @app.route("/", methods=["GET"])
 def home():
-    return jsonify({
-        "message": "Car Price Prediction API",
-        "endpoints": ["/health", "/predict"]
-    })
+    return render_template("index.html")
+
 
 @app.route("/health", methods=["GET"])
 def health():
-    return jsonify({"status": "running"}), 200
+    return jsonify(
+        {
+            "status": "running",
+            "message": "Car Price Prediction API is healthy",
+        }
+    ), 200
+
 
 @app.route("/predict", methods=["POST"])
 def predict():
-    data = request.get_json()
+    data = request.get_json(silent=True)
 
     if not data:
         logging.warning("No JSON data provided")
         return jsonify({"error": "No JSON data provided"}), 400
 
-    missing = [field for field in REQUIRED_FIELDS if field not in data]
+    missing = [
+        field
+        for field in REQUIRED_FIELDS
+        if field not in data or str(data[field]).strip() == ""
+    ]
+
     if missing:
-        logging.warning(f"Missing fields: {missing}")
-        return jsonify({"error": "Missing required fields", "missing_fields": missing}), 400
+        logging.warning("Missing fields: %s", missing)
+        return jsonify(
+            {
+                "error": "Missing required fields",
+                "missing_fields": missing,
+            }
+        ), 400
 
     try:
-        prediction = predict_price(data)
-        logging.info(f"Prediction successful: {prediction}")
-        return jsonify({"predicted_price": round(float(prediction), 2)}), 200
-    except Exception as e:
-        logging.error(f"Prediction failed: {e}")
-        return jsonify({"error": "Prediction failed", "details": str(e)}), 500
+        cleaned_data = {
+            "Brand": str(data["Brand"]).strip(),
+            "Model": str(data["Model"]).strip(),
+            "Year": int(data["Year"]),
+            "Engine Size": float(data["Engine Size"]),
+            "Fuel Type": str(data["Fuel Type"]).strip(),
+            "Transmission": str(data["Transmission"]).strip(),
+            "Mileage": float(data["Mileage"]),
+            "Condition": str(data["Condition"]).strip(),
+        }
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+        prediction = predict_price(cleaned_data)
 
-@app.route("/", methods=["GET"])
-def home():
-    return """
-    <h1>Car Price Prediction</h1>
+        logging.info(
+            "Prediction successful. Input=%s Prediction=%s",
+            cleaned_data,
+            prediction,
+        )
 
-    <form action="/predict_form" method="post">
-        <label>Brand:</label><br>
-        <input name="Brand" value="Toyota"><br><br>
+        return jsonify(
+            {
+                "predicted_price": round(float(prediction), 2),
+            }
+        ), 200
 
-        <label>Year:</label><br>
-        <input name="Year" value="2018"><br><br>
+    except ValueError as exc:
+        logging.exception("Invalid numeric input")
+        return jsonify(
+            {
+                "error": "Invalid input",
+                "details": str(exc),
+            }
+        ), 400
 
-        <label>Engine Size:</label><br>
-        <input name="Engine Size" value="2.5"><br><br>
+    except Exception as exc:
+        logging.exception("Prediction failed")
+        return jsonify(
+            {
+                "error": "Prediction failed",
+                "details": str(exc),
+            }
+        ), 500
 
-        <label>Fuel Type:</label><br>
-        <input name="Fuel Type" value="Petrol"><br><br>
-
-        <label>Transmission:</label><br>
-        <input name="Transmission" value="Automatic"><br><br>
-
-        <label>Mileage:</label><br>
-        <input name="Mileage" value="55000"><br><br>
-
-        <label>Condition:</label><br>
-        <input name="Condition" value="Used"><br><br>
-
-        <label>Model:</label><br>
-        <input name="Model" value="Camry"><br><br>
-
-        <button type="submit">Predict Price</button>
-    </form>
-    """
 
 @app.route("/predict_form", methods=["POST"])
 def predict_form():
     try:
         data = {
-            "Brand": request.form["Brand"],
+            "Brand": request.form["Brand"].strip(),
+            "Model": request.form["Model"].strip(),
             "Year": int(request.form["Year"]),
             "Engine Size": float(request.form["Engine Size"]),
-            "Fuel Type": request.form["Fuel Type"],
-            "Transmission": request.form["Transmission"],
-            "Mileage": int(request.form["Mileage"]),
-            "Condition": request.form["Condition"],
-            "Model": request.form["Model"]
+            "Fuel Type": request.form["Fuel Type"].strip(),
+            "Transmission": request.form["Transmission"].strip(),
+            "Mileage": float(request.form["Mileage"]),
+            "Condition": request.form["Condition"].strip(),
         }
 
         prediction = predict_price(data)
 
-        return f"""
-        <h1>Prediction Result</h1>
-        <p>Predicted Price: ${prediction:,.2f}</p>
-        <a href="/">Make another prediction</a>
-        """
+        logging.info(
+            "Form prediction successful. Input=%s Prediction=%s",
+            data,
+            prediction,
+        )
 
-    except Exception as e:
-        return f"""
-        <h1>Error</h1>
-        <p>{str(e)}</p>
-        <a href="/">Try again</a>
-        """
+        return render_template(
+            "index.html",
+            prediction=f"${float(prediction):,.2f}",
+            submitted=data,
+        )
+
+    except ValueError as exc:
+        logging.exception("Invalid form input")
+        return render_template(
+            "index.html",
+            error="Year, engine size, and mileage must be valid numbers.",
+        ), 400
+
+    except Exception as exc:
+        logging.exception("Form prediction failed")
+        return render_template(
+            "index.html",
+            error=f"Prediction failed: {exc}",
+        ), 500
 
 
 if __name__ == "__main__":
-    import os
-
     port = int(os.environ.get("PORT", 5000))
 
     app.run(
         host="0.0.0.0",
-        port=port
+        port=port,
     )
