@@ -94,8 +94,4 @@ def prepare_data(file_path: str):
 
     preprocessor = build_preprocessor()
 
-    joblib.dump(preprocessor, "models/preprocessor.pkl")
-
-    logging.info("Preprocessor saved to models/preprocessor.pkl")
-
     return X_train, X_test, y_train, y_test, preprocessor
