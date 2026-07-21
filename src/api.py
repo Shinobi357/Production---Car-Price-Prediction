@@ -111,16 +111,43 @@ def predict():
 
 @app.route("/predict_form", methods=["POST"])
 def predict_form():
+    submitted = request.form.to_dict()
+
     try:
+        # Validate all required fields before conversion or prediction
+        missing = [
+            field for field in REQUIRED_FIELDS
+            if not submitted.get(field, "").strip()
+        ]
+
+        if missing:
+            return render_template(
+                "index.html",
+                error=f"Please complete these fields: {', '.join(missing)}",
+                submitted=submitted,
+            ), 400
+
+        # Convert only the numerical fields
+        try:
+            year = int(submitted["Year"])
+            engine_size = float(submitted["Engine Size"])
+            mileage = float(submitted["Mileage"])
+        except ValueError:
+            return render_template(
+                "index.html",
+                error="Year, engine size, and mileage must be valid numbers.",
+                submitted=submitted,
+            ), 400
+
         data = {
-            "Brand": request.form["Brand"].strip(),
-            "Model": request.form["Model"].strip(),
-            "Year": int(request.form["Year"]),
-            "Engine Size": float(request.form["Engine Size"]),
-            "Fuel Type": request.form["Fuel Type"].strip(),
-            "Transmission": request.form["Transmission"].strip(),
-            "Mileage": float(request.form["Mileage"]),
-            "Condition": request.form["Condition"].strip(),
+            "Brand": submitted["Brand"].strip(),
+            "Model": submitted["Model"].strip(),
+            "Year": year,
+            "Engine Size": engine_size,
+            "Fuel Type": submitted["Fuel Type"].strip(),
+            "Transmission": submitted["Transmission"].strip(),
+            "Mileage": mileage,
+            "Condition": submitted["Condition"].strip(),
         }
 
         prediction = predict_price(data)
@@ -137,25 +164,11 @@ def predict_form():
             submitted=data,
         )
 
-    except ValueError as exc:
-        logging.exception("Invalid form input")
-        return render_template(
-            "index.html",
-            error="Year, engine size, and mileage must be valid numbers.",
-        ), 400
-
     except Exception as exc:
         logging.exception("Form prediction failed")
+
         return render_template(
             "index.html",
-            error=f"Prediction failed: {exc}",
+            error=f"Prediction failed: {type(exc).__name__}: {exc}",
+            submitted=submitted,
         ), 500
-
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-
-    app.run(
-        host="0.0.0.0",
-        port=port,
-    )
